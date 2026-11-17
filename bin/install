@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() {
+  echo "asdf-dtctl: $*" >&2
+  exit 1
+}
+
+if [[ $# -ne 3 ]]; then
+  fail "uso: install <install-type> <version> <install-path>"
+fi
+
+install_type="$1"
+version="$2"
+install_path="$3"
+
+if [[ "$install_type" != "version" ]]; then
+  fail "solo se soporta install_type=version (recibido: $install_type)"
+fi
+
+os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+arch="$(uname -m)"
+
+case "$os" in
+  linux|darwin) ;;
+  *)
+    fail "sistema operativo no soportado: $os (soportados: linux, darwin)"
+    ;;
+esac
+
+case "$arch" in
+  x86_64|amd64) arch="amd64" ;;
+  aarch64|arm64) arch="arm64" ;;
+  *)
+    fail "arquitectura no soportada: $arch (soportadas: amd64, arm64)"
+    ;;
+esac
+
+clean_version="${version#v}"
+archive="dtctl_${clean_version}_${os}_${arch}.tar.gz"
+download_url="https://github.com/Dynatrace/dtctl/releases/download/v${clean_version}/${archive}"
+
+tmp_dir="$(mktemp -d)"
+trap 'rm -rf "$tmp_dir"' EXIT
+
+archive_path="$tmp_dir/$archive"
+
+curl -fsSL "$download_url" -o "$archive_path" \
+  || fail "no se pudo descargar $download_url"
+
+tar -xzf "$archive_path" -C "$tmp_dir" \
+  || fail "falló la extracción de $archive"
+
+[[ -f "$tmp_dir/dtctl" ]] || fail "no se encontró el binario dtctl tras extraer el archivo"
+
+mkdir -p "$install_path/bin"
+install -m 755 "$tmp_dir/dtctl" "$install_path/bin/dtctl"
