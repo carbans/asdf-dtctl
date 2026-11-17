@@ -6,13 +6,13 @@ fail() {
   exit 1
 }
 
-if [[ $# -ne 3 ]]; then
-  fail "uso: install <install-type> <version> <install-path>"
-fi
+install_type="${ASDF_INSTALL_TYPE:-}"
+version="${ASDF_INSTALL_VERSION:-}"
+install_path="${ASDF_INSTALL_PATH:-}"
 
-install_type="$1"
-version="$2"
-install_path="$3"
+if [[ -z "$install_type" || -z "$version" || -z "$install_path" ]]; then
+  fail "faltan variables ASDF_INSTALL_TYPE, ASDF_INSTALL_VERSION o ASDF_INSTALL_PATH"
+fi
 
 if [[ "$install_type" != "version" ]]; then
   fail "solo se soporta install_type=version (recibido: $install_type)"
